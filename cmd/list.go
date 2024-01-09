@@ -4,12 +4,10 @@ Copyright © 2024 Teruaki Sato <andrea.pirlo.0529@gmail.com>
 package cmd
 
 import (
-	"bufio"
-	"encoding/csv"
 	"fmt"
-	"os"
 
 	"github.com/spf13/cobra"
+	"github.com/teru-0529/apiextract/store"
 )
 
 var (
@@ -17,7 +15,7 @@ var (
 		{"Hello", "たくみ"},
 		{"Godd Morning", "ようこ"},
 	}
-	outPutFile = "apilist.tsv"
+	outPutFile = "a/apilist.tsv"
 )
 
 // listCmd represents output url and httpmethod list
@@ -27,20 +25,14 @@ var listCmd = &cobra.Command{
 	Long:  "Output url and httpmethod list.",
 	RunE: func(cmd *cobra.Command, args []string) error {
 
-		// INFO: 出力用ファイルのオープン
-		file, err := os.OpenFile(outPutFile, os.O_RDWR|os.O_CREATE, 0755)
+		// INFO: Writerの取得
+		writer, cleanup, err := store.NewWriter(outPutFile)
 		if err != nil {
-			return fmt.Errorf("cannot create file: %s", err.Error())
+			return err
 		}
-		defer file.Close()
+		defer cleanup()
 
-		// INFO: Excelで文字化けしないようにする設定。BOM付きUTF8をfileの先頭に付与
-		buf := bufio.NewWriter(file)
-		buf.Write([]byte{0xEF, 0xBB, 0xBF})
-
-		// INFO: csv形式でデータを書き込み
-		writer := csv.NewWriter(buf)
-		writer.Comma = '\t'  //タブ区切りに変更
+		// INFO: 書き込み
 		defer writer.Flush() //内部バッファのフラッシュは必須
 		for _, rec := range dummy {
 			if err := writer.Write(rec); err != nil {
