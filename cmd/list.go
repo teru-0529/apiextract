@@ -15,7 +15,7 @@ var (
 		{"Hello", "たくみ"},
 		{"Godd Morning", "ようこ"},
 	}
-	outPutFile = "a/apilist.tsv"
+	outPutFile string
 )
 
 // listCmd represents output url and httpmethod list
@@ -40,10 +40,12 @@ var listCmd = &cobra.Command{
 			}
 		}
 
-		fmt.Println("list called")
+		fmt.Println("write apilist")
 		return nil
 	},
 }
 
 func init() {
+	// INFO:フラグ値を変数にBind
+	listCmd.Flags().StringVarP(&outPutFile, "out", "O", "apilist.tsv", "output file path")
 }
