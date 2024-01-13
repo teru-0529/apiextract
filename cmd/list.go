@@ -11,10 +11,7 @@ import (
 	"github.com/teru-0529/apiextract/store"
 )
 
-var (
-	inputFile = "./openapi/orders/openapi.yaml"
-)
-
+var inputFile string
 var outputFile string
 
 // listCmd represents output url and httpmethod list
@@ -63,5 +60,6 @@ var listCmd = &cobra.Command{
 
 func init() {
 	// INFO:フラグ値を変数にBind
-	listCmd.Flags().StringVarP(&outputFile, "out", "O", "apilist.tsv", "output file path")
+	listCmd.Flags().StringVarP(&inputFile, "in", "I", "./openapi.yaml", "input file path")
+	listCmd.Flags().StringVarP(&outputFile, "out", "O", "./pathlist.tsv", "output file path")
 }

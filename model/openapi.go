@@ -104,7 +104,7 @@ type Component struct {
 
 func NewOpenApi(filename string) (*ApiBase, *[]Path, *[]Component, error) {
 	// INFO: read
-	file, err := os.ReadFile("./openapi/orders/openapi.yaml")
+	file, err := os.ReadFile(filename)
 	if err != nil {
 		return nil, nil, nil, fmt.Errorf("cannot read file: %s", err.Error())
 	}
