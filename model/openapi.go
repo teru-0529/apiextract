@@ -53,7 +53,7 @@ type Path struct {
 	Tags         []string    `yaml:"tags"`
 	Parameters   []Parameter `yaml:"parameters"`
 	requestBody  RequestBody
-	response     string      //FIXME:
+	responses    []Response
 	ExternalDocs ExternalDoc `yaml:"externalDocs"`
 }
 
@@ -104,12 +104,6 @@ type OpenApi struct { //FIXME:
 	tags        []Tag
 	paths       []Path
 }
-
-// type response struct {
-// 	refType     string
-// 	ref         string
-// 	description string
-// }
 
 func NewOpenApi(filename string) (*OpenApi, error) {
 	// INFO: 読込み
@@ -188,7 +182,7 @@ func (path *Path) ToArray() []string {
 		path.Description,
 		fmt.Sprint(10),
 		"path.requestBody.description",
-		path.response,
+		"path.responses",
 		"lo.Ternary(path.hasExternalDocs, ",
 	}
 }
@@ -219,7 +213,7 @@ func pathItems(yamlData []byte) (*[]Path, error) {
 				return nil, err
 			}
 
-			requestBody, err := requestBody(methpdValue)
+			requestBody, err := newRequestBody(methpdValue)
 			if err != nil {
 				return nil, err
 			}
@@ -229,8 +223,8 @@ func pathItems(yamlData []byte) (*[]Path, error) {
 			path.method = method
 
 			// fmt.Println(methodMap) //WARNING:
-			fmt.Println(path.requestBody) //WARNING:
-			fmt.Println("***** *****")    //WARNING:
+			fmt.Println(path.responses) //WARNING:
+			fmt.Println("***** *****")  //WARNING:
 
 			paths = append(paths, *path)
 		}
@@ -240,7 +234,7 @@ func pathItems(yamlData []byte) (*[]Path, error) {
 
 // ----+----+----+----+----+----+----+----+----+----+----+
 
-func requestBody(methodValue map[string]interface{}) (*RequestBody, error) {
+func newRequestBody(methodValue map[string]interface{}) (*RequestBody, error) {
 	// requestBody属性が未定義
 	if _, ok := methodValue["requestBody"]; !ok {
 		return &RequestBody{}, nil
@@ -268,119 +262,7 @@ func requestBody(methodValue map[string]interface{}) (*RequestBody, error) {
 	return &requestbody, nil
 }
 
-func baseInfo(yamldata map[string]interface{}) (*OpenApi, error) {
-
-	return &OpenApi{
-		openapi:     "openapi",
-		title:       "title",
-		description: "description",
-		version:     "version",
-		servers:     []Server{},
-		tags:        []Tag{},
-	}, nil
-}
-
-// func pathItemD(yamldata map[string]interface{}) (*[]Path, error) {
-
-// 	// INFO: path階層
-// 	for path, pathItem := range tPaths {
-
-// 		// INFO: httpMethod階層
-// 		for method, methodItem := range pathItem {
-
-// 			// TODO: requestBody
-// 			// requestBody := RequestBody{}
-// 			// if tRequestBody, ok := methodItem["requestBody"]; ok { // requestBodyセクションがない場合は回避
-// 			// 	tRequestBody, ok := tRequestBody.(map[interface{}]interface{})
-// 			// 	if !ok {
-// 			// 		return nil, errors.New("cannot parse yaml data [paths][method][requestBody]")
-// 			// 	}
-
-// 			// 	tDescription, ok := tRequestBody["description"]
-// 			// 	if !ok {
-// 			// 		return nil, errors.New("cannot parse yaml data [paths][method][requestBody][description]")
-// 			// 	}
-// 			// 	description, ok = tDescription.(string)
-// 			// 	if !ok {
-// 			// 		return nil, errors.New("cannot parse yaml data [paths][method][requestBody][description]")
-// 			// 	}
-// 			// 	requestBody.description = description
-
-// 			// 	if ref, ok := tRequestBody["$ref"]; ok {
-// 			// 		ref, ok := ref.(string)
-// 			// 		if !ok {
-// 			// 			return nil, errors.New("cannot parse yaml data [paths][method][requestBody][$ref]")
-// 			// 		}
-// 			// 		requestBody.refType = "requestBodies"
-// 			// 		requestBody.ref = ref
-
-// 			// 	} else if contentV, ok := tRequestBody["content"]; ok {
-// 			// 		contentV, ok := contentV.(map[interface{}]interface{})
-// 			// 		if !ok {
-// 			// 			return nil, errors.New("cannot parse yaml data [paths][method][requestBody][content]")
-// 			// 		}
-// 			// 		appV, ok := contentV["application/json"]
-// 			// 		if !ok {
-// 			// 			return nil, errors.New("cannot parse yaml data [paths][method][requestBody][content]")
-// 			// 		}
-// 			// 		appVC, ok := appV.(map[interface{}]interface{})
-// 			// 		if !ok {
-// 			// 			return nil, errors.New("cannot parse yaml data [paths][method][requestBody][content]")
-// 			// 		}
-// 			// 		schemaV, ok := appVC["schema"]
-// 			// 		if !ok {
-// 			// 			return nil, errors.New("cannot parse yaml data [paths][method][requestBody][content]")
-// 			// 		}
-// 			// 		schemaVC, ok := schemaV.(map[interface{}]interface{})
-// 			// 		if !ok {
-// 			// 			return nil, errors.New("cannot parse yaml data [paths][method][requestBody][content]")
-// 			// 		}
-// 			// 		ref, ok := schemaVC["$ref"]
-// 			// 		if ok {
-// 			// 			ref, ok := ref.(string)
-// 			// 			if !ok {
-// 			// 				return nil, errors.New("cannot parse yaml data [paths][method][requestBody][content]")
-// 			// 			}
-// 			// 			requestBody.refType = "schemas"
-// 			// 			requestBody.ref = ref
-// 			// 		} else {
-// 			// 			requestBody.refType = "none"
-// 			// 		}
-
-// 			// 	} else {
-// 			// 		return nil, errors.New("cannot parse yaml data [paths][method][requestBody]")
-// 			// 	}
-
-// 			// 	fmt.Println(tRequestBody)
-// 			// 	fmt.Println(requestBody)
-
-// 			// }
-
-// 			// FIXME: responses
-
-// 			// INFO: externalDocs
-// 			_, hasExternalDocs := methodItem["externalDocs"]
-
-// 			paths = append(paths, Path{
-// 				url:             path,
-// 				method:          method,
-// 				OperationId:     operationId,
-// 				Summary:         summary,
-// 				Description:     description,
-// 				tags:            tags,
-// 				parameters:      parameters,
-// 				requestBody:     "requestBody",
-// 				response:        "bbb",
-// 				hasExternalDocs: hasExternalDocs,
-// 			})
-// 			// for k := range methodItem {
-// 			// 	fmt.Println(k)
-// 			// }
-// 			// fmt.Println("***** *****")
-// 		}
-// 	}
-// 	return &paths, nil
-// }
+// ----+----+----+----+----+----+----+----+----+----+----+
 
 func mapValue(mapData map[string]interface{}, key string) (map[string]interface{}, error) {
 	yamlData, err := yaml.Marshal(mapData[key])
@@ -445,4 +327,18 @@ func newContent(mapData map[string]interface{}) (*Content, error) {
 	} else {
 		return &Content{exist: true}, nil
 	}
+}
+
+// ----+----+----+----+----+----+----+----+----+----+----+
+// FIXME:
+func baseInfo(yamldata map[string]interface{}) (*OpenApi, error) {
+
+	return &OpenApi{
+		openapi:     "openapi",
+		title:       "title",
+		description: "description",
+		version:     "version",
+		servers:     []Server{},
+		tags:        []Tag{},
+	}, nil
 }
