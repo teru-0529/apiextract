@@ -12,10 +12,6 @@ import (
 )
 
 var (
-	dummy = [][]string{
-		{"Hello", "たくみ"},
-		{"Godd Morning", "ようこ"},
-	}
 	inputFile = "./openapi/orders/openapi.yaml"
 )
 
@@ -28,18 +24,10 @@ var listCmd = &cobra.Command{
 	Long:  "Output url and httpmethod list.",
 	RunE: func(cmd *cobra.Command, args []string) error {
 
-		openapi, err := model.NewOpenApi(inputFile)
+		_, paths, _, err := model.NewOpenApi(inputFile)
 		if err != nil {
 			return err
 		}
-
-		fmt.Println(openapi.Openapi())
-		// fmt.Println(openapi.Info())
-		// fmt.Printf("%#v\n", openapi.Servers())
-		// fmt.Printf("%#v\n", openapi.Tags())
-		// for _, v := range openapi.Paths() {
-		// 	fmt.Printf("%#v\n", v)
-		// }
 
 		// INFO: Writerの取得
 		writer, cleanup, err := store.NewWriter(outputFile)
@@ -51,24 +39,24 @@ var listCmd = &cobra.Command{
 		// INFO: 書き込み
 		defer writer.Flush() //内部バッファのフラッシュは必須
 		writer.Write([]string{
-			"tags",
+			"tagList",
 			"path",
 			"method",
 			"operationId",
 			"summary",
 			"description",
 			"numOfParameter",
-			"requestBody",
-			"response",
-			"hasExternalDocs",
+			"hasRequestbody",
+			"responseStatusList",
+			"hasExternalDoc",
 		})
-		for _, path := range openapi.Paths() {
-			if err := writer.Write(path.ToArray()); err != nil {
+		for _, path := range *paths {
+			if err := writer.Write(path.ToPathArray()); err != nil {
 				return fmt.Errorf("cannot write record: %s", err.Error())
 			}
 		}
 
-		fmt.Println("write apilist")
+		fmt.Println("write path list")
 		return nil
 	},
 }

@@ -3,6 +3,7 @@ module github.com/teru-0529/apiextract
 go 1.21.5
 
 require (
+	github.com/samber/lo v1.39.0
 	github.com/spf13/cobra v1.8.0
 	github.com/spf13/viper v1.18.2
 	gopkg.in/yaml.v2 v2.4.0

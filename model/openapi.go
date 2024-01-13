@@ -1,10 +1,14 @@
 package model
 
 import (
+	"errors"
 	"fmt"
 	"os"
+	"sort"
+	"strconv"
 	"strings"
 
+	"github.com/samber/lo"
 	"gopkg.in/yaml.v2"
 )
 
@@ -84,8 +88,8 @@ type Content struct {
 
 type ResponseHeader struct {
 	name        string
-	ref         string
 	description string
+	ref         string
 }
 
 type ExternalDoc struct {
@@ -93,86 +97,43 @@ type ExternalDoc struct {
 	Url         string `yaml:"url"`
 }
 
-// --------------
-
-type OpenApi struct { //FIXME:
-	openapi     string
-	title       string
-	description string
-	version     string
-	servers     []Server
-	tags        []Tag
-	paths       []Path
+type Component struct {
 }
 
-func NewOpenApi(filename string) (*OpenApi, error) {
-	// INFO: 読込み
+// --------------
+
+func NewOpenApi(filename string) (*ApiBase, *[]Path, *[]Component, error) {
+	// INFO: read
 	file, err := os.ReadFile("./openapi/orders/openapi.yaml")
 	if err != nil {
-		return nil, fmt.Errorf("cannot read file: %s", err.Error())
+		return nil, nil, nil, fmt.Errorf("cannot read file: %s", err.Error())
 	}
 
 	// INFO: baseItem
 	var apiBase ApiBase
 	err = yaml.Unmarshal([]byte(file), &apiBase)
 	if err != nil {
-		return nil, err
+		return nil, nil, nil, err
 	}
-	// fmt.Println(apiBase) //WARNING:
 
 	// INFO: PathItem
 	yamlPath, err := yamlChild([]byte(file), "paths")
 	if err != nil {
-		return nil, err
+		return nil, nil, nil, err
 	}
 	paths, err := pathItems(yamlPath)
 	if err != nil {
-		return nil, err
+		return nil, nil, nil, err
 	}
-	fmt.Println(len(*paths)) //WARNING:
 
-	// INFO: パース処理
-	var mapData map[string]interface{}
-	openapi, err := baseInfo(mapData)
-	if err != nil {
-		return nil, err
-	}
-	// paths, err = pathItemD(mapData)
-	// if err != nil {
-	// 	return nil, err
-	// }
-	// openapi.paths = *paths
+	// TODO: componentTtem
 
-	return openapi, nil
-}
-
-func (api *OpenApi) ToStr() {
-	fmt.Println(api)
-}
-
-func (api *OpenApi) Openapi() string {
-	return api.openapi
-}
-
-func (api *OpenApi) Info() (string, string, string) {
-	return api.title, api.description, api.version
-}
-
-func (api *OpenApi) Servers() []Server {
-	return api.servers
-}
-
-func (api *OpenApi) Tags() []Tag {
-	return api.tags
-}
-
-func (api *OpenApi) Paths() []Path {
-	return api.paths
+	return &apiBase, paths, nil, nil
 }
 
 // ----+----+----+----+----+----+----+----+----+----+----+
 
-func (path *Path) ToArray() []string {
+func (path *Path) ToPathArray() []string {
 	return []string{
 		strings.Join(path.Tags, ","),
 		path.url,
@@ -180,10 +141,65 @@ func (path *Path) ToArray() []string {
 		path.OperationId,
 		path.Summary,
 		path.Description,
-		fmt.Sprint(10),
-		"path.requestBody.description",
-		"path.responses",
-		"lo.Ternary(path.hasExternalDocs, ",
+		strconv.Itoa(len(path.Parameters)),
+		strconv.FormatBool(path.requestBody.exist),
+		strings.Join(lo.Map(path.responses, func(x Response, _ int) string { return x.status }), ","),
+		strconv.FormatBool(path.ExternalDocs.Url != ""),
+	}
+}
+
+// func (path *Path) ToIoArray() [][]string { // TODO:
+// 	return []string{
+// 		strings.Join(path.Tags, ","),
+// 		path.url,
+// 		path.method,
+// 		path.OperationId,
+// 		path.Summary,
+// 		path.Description,
+// 		fmt.Sprint(10),
+// 		"path.requestBody.description",
+// 		"path.responses",
+// 		"lo.Ternary(path.hasExternalDocs, ",
+// 	}
+// }
+
+func (parameter *Parameter) refType() RefType {
+	if parameter.Ref != "" {
+		return PARAMETERS
+	} else {
+		return NONE
+	}
+}
+
+func (requestBody *RequestBody) refType() RefType {
+	if requestBody.ref != "" {
+		return REQUESTBODIES
+	} else {
+		return requestBody.content.refType()
+	}
+}
+
+func (response *Response) refType() RefType {
+	if response.ref != "" {
+		return RESPONSES
+	} else {
+		return response.content.refType()
+	}
+}
+
+func (content *Content) refType() RefType {
+	if content.ref != "" {
+		return SCHEMAS
+	} else {
+		return NONE
+	}
+}
+
+func (header *ResponseHeader) refType() RefType {
+	if header.ref != "" {
+		return HEADERS
+	} else {
+		return NONE
 	}
 }
 
@@ -219,16 +235,30 @@ func pathItems(yamlData []byte) (*[]Path, error) {
 			}
 			path.requestBody = *requestBody
 
+			responses, err := newResponses(methpdValue)
+			if err != nil {
+				return nil, err
+			}
+			path.responses = *responses
+
 			path.url = url
 			path.method = method
-
-			// fmt.Println(methodMap) //WARNING:
-			fmt.Println(path.responses) //WARNING:
-			fmt.Println("***** *****")  //WARNING:
-
 			paths = append(paths, *path)
 		}
 	}
+
+	sort.SliceStable(paths, func(x, y int) bool {
+		a, b := paths[x], paths[y]
+		switch {
+		case a.url < b.url:
+			return true
+		case a.url > b.url:
+			return false
+		default:
+			return a.method < b.method
+		}
+	})
+
 	return &paths, nil
 }
 
@@ -260,6 +290,54 @@ func newRequestBody(methodValue map[string]interface{}) (*RequestBody, error) {
 	}
 
 	return &requestbody, nil
+}
+
+func newResponses(methodValue map[string]interface{}) (*[]Response, error) {
+	// reponses属性が未定義
+	if _, ok := methodValue["responses"]; !ok {
+		return nil, errors.New("responses must exist")
+	}
+	responsesMap, err := mapValue(methodValue, "responses")
+	if err != nil {
+		return nil, err
+	}
+
+	var responses []Response
+	for status := range responsesMap {
+		responseMap, err := mapValue(responsesMap, status)
+		if err != nil {
+			return nil, err
+		}
+
+		response := Response{status: status}
+		if _, ok := responseMap["description"]; ok {
+			response.description = responseMap["description"].(string)
+		}
+
+		if _, ok := responseMap["$ref"]; ok { // response:$ref
+			response.ref = responseMap["$ref"].(string)
+		} else {
+			content, err := newContent(responseMap)
+			if err != nil {
+				return nil, err
+			}
+			response.content = *content
+
+			responseheader, err := newResponseHeaders(responseMap)
+			if err != nil {
+				return nil, err
+			}
+			response.headers = *responseheader
+		}
+
+		responses = append(responses, response)
+	}
+
+	sort.Slice(responses, func(x, y int) bool {
+		return responses[x].status < responses[y].status
+	})
+
+	return &responses, nil
 }
 
 // ----+----+----+----+----+----+----+----+----+----+----+
@@ -329,16 +407,31 @@ func newContent(mapData map[string]interface{}) (*Content, error) {
 	}
 }
 
-// ----+----+----+----+----+----+----+----+----+----+----+
-// FIXME:
-func baseInfo(yamldata map[string]interface{}) (*OpenApi, error) {
+func newResponseHeaders(mapData map[string]interface{}) (*[]ResponseHeader, error) {
+	var headers []ResponseHeader
+	if _, ok := mapData["headers"]; !ok {
+		return &headers, nil // no_headers
+	}
 
-	return &OpenApi{
-		openapi:     "openapi",
-		title:       "title",
-		description: "description",
-		version:     "version",
-		servers:     []Server{},
-		tags:        []Tag{},
-	}, nil
+	headerMap, err := mapValue(mapData, "headers")
+	if err != nil {
+		return nil, err
+	}
+	for name := range headerMap {
+		header := ResponseHeader{name: name}
+		headerValue, err := mapValue(headerMap, name)
+		if err != nil {
+			return nil, err
+		}
+
+		if _, ok := headerValue["description"]; ok {
+			header.description = headerValue["description"].(string)
+		}
+		if _, ok := headerValue["$ref"]; ok {
+			header.ref = headerValue["$ref"].(string)
+		}
+		headers = append(headers, header)
+	}
+
+	return &headers, nil
 }
