@@ -7,6 +7,7 @@ import (
 	"fmt"
 
 	"github.com/spf13/cobra"
+	"github.com/teru-0529/apiextract/model"
 	"github.com/teru-0529/apiextract/store"
 )
 
@@ -15,8 +16,10 @@ var (
 		{"Hello", "たくみ"},
 		{"Godd Morning", "ようこ"},
 	}
-	outPutFile string
+	inputFile = "./openapi/orders/openapi.yaml"
 )
+
+var outputFile string
 
 // listCmd represents output url and httpmethod list
 var listCmd = &cobra.Command{
@@ -25,8 +28,21 @@ var listCmd = &cobra.Command{
 	Long:  "Output url and httpmethod list.",
 	RunE: func(cmd *cobra.Command, args []string) error {
 
+		openapi, err := model.NewOpenApi(inputFile)
+		if err != nil {
+			return err
+		}
+
+		fmt.Println(openapi.Openapi())
+		// fmt.Println(openapi.Info())
+		// fmt.Printf("%#v\n", openapi.Servers())
+		// fmt.Printf("%#v\n", openapi.Tags())
+		// for _, v := range openapi.Paths() {
+		// 	fmt.Printf("%#v\n", v)
+		// }
+
 		// INFO: Writerの取得
-		writer, cleanup, err := store.NewWriter(outPutFile)
+		writer, cleanup, err := store.NewWriter(outputFile)
 		if err != nil {
 			return err
 		}
@@ -34,8 +50,20 @@ var listCmd = &cobra.Command{
 
 		// INFO: 書き込み
 		defer writer.Flush() //内部バッファのフラッシュは必須
-		for _, rec := range dummy {
-			if err := writer.Write(rec); err != nil {
+		writer.Write([]string{
+			"tags",
+			"path",
+			"method",
+			"operationId",
+			"summary",
+			"description",
+			"numOfParameter",
+			"requestBody",
+			"response",
+			"hasExternalDocs",
+		})
+		for _, path := range openapi.Paths() {
+			if err := writer.Write(path.ToArray()); err != nil {
 				return fmt.Errorf("cannot write record: %s", err.Error())
 			}
 		}
@@ -47,5 +75,5 @@ var listCmd = &cobra.Command{
 
 func init() {
 	// INFO:フラグ値を変数にBind
-	listCmd.Flags().StringVarP(&outPutFile, "out", "O", "apilist.tsv", "output file path")
+	listCmd.Flags().StringVarP(&outputFile, "out", "O", "apilist.tsv", "output file path")
 }
