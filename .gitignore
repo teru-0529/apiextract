@@ -23,4 +23,5 @@ go.work
 todo.md
 *.csv
 *.tsv
-*.yaml
+
+dist/
