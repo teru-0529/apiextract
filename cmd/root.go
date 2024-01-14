@@ -40,7 +40,7 @@ func init() {
 	cobra.OnInitialize(initConfig)
 
 	// サブコマンドの追加
-	rootCmd.AddCommand(listCmd)
+	rootCmd.AddCommand(pathCmd)
 	rootCmd.AddCommand(versionCmd)
 
 	// TODO:cofigファイルの定義(viper)は未整備
