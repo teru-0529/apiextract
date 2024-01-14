@@ -5,6 +5,7 @@
     }
   ],
   "settings": {
+    "csv-preview.separator": "\\t",
     "files.associations": {
       "LICENSE": "plaintext"
     }

@@ -19,7 +19,7 @@ func NewWriter(fileName string) (*csv.Writer, func(), error) {
 	}
 
 	// INFO: 出力用ファイルのオープン
-	file, err := os.OpenFile(fileName, os.O_WRONLY|os.O_CREATE, 0777)
+	file, err := os.Create(fileName)
 	if err != nil {
 		return nil, nil, fmt.Errorf("cannot create file: %s", err.Error())
 	}

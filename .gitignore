@@ -23,3 +23,5 @@ go.work
 todo.md
 *.csv
 *.tsv
+
+dist/

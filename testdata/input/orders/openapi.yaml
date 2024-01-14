@@ -1,0 +1,809 @@
+openapi: 3.0.3
+info:
+  title: Orders API
+  description: 受注領域API
+  version: 1.0.0
+servers:
+  - url: http://{host}:{port}
+    description: ローカル開発環境
+    variables:
+      host:
+        default: localhost
+      port:
+        default: "9010"
+  - url: https://production/orders/api
+    description: プロダクション環境
+tags:
+  - name: order
+    description: 受注
+  - name: customer
+    description: 得意先
+  - name: default
+    description: 基本機能
+paths:
+  /health3:
+    get:
+      tags:
+        - default
+      operationId: notifications.health.get
+      summary: サーバー状態を返す
+      description: サーバーの状態を返します。
+      responses:
+        "200":
+          description: OK
+        default:
+          description: Error
+  /orders:
+    post:
+      tags:
+        - order
+        - batch
+      operationId: orders.orders.post
+      summary: 受注登録
+      description: 受注を新規に登録する。最低1件の受注明細が必要で、複数明細を同時に登録可能。受注NO、明細NOは内部で自動採番、受注日は自動で設定する。
+      requestBody:
+        description: 登録する受注情報
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/single"
+      responses:
+        "201":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/single"
+          headers:
+            location:
+              $ref: "#/components/headers/location_header"
+              example: /v0/orders/RO-0000001
+        default:
+          $ref: "#/components/responses/error_response"
+      externalDocs:
+        description: 受注登録
+        url: https://google.com/
+    get:
+      tags:
+        - order
+      operationId: orders.orders.get
+      summary: 受注一覧取得
+      description: 受注一覧を取得する。ソートは`受注NO`の昇順
+      parameters:
+        - $ref: "#/components/parameters/limit"
+        - $ref: "#/components/parameters/offset"
+        - $ref: "#/components/parameters/customerName"
+          description: 【検索条件】得意先名（前方一致）
+        - $ref: "#/components/parameters/orderPic"
+          description: 【検索条件】受注担当者ID（完全一致）
+        - $ref: "#/components/parameters/existRemaining"
+          description: 【検索条件】受注残ありのみ
+        - in: query
+          name: userId
+          description: 【検索条件】ユーザーID
+          required: false
+          schema:
+            type: string
+
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/multiple"
+          headers:
+            is_remaining:
+              schema:
+                type: boolean
+              description: limit件数でスライスした際に返却していないデータがある場合にtrue
+              example: true
+        default:
+          $ref: "#/components/responses/error_response"
+      externalDocs:
+        description: 受注一覧取得
+        url: https://google.com/
+  /orders/{received_order_no}:
+    patch:
+      tags:
+        - order
+      operationId: orders.orders.no.patch
+      summary: 受注修正
+      description: 受注NOを指定し、特定した受注の指定した項目のみ変更する。（※受注明細の項目は修正不可、明細キャンセル/追加により行う）
+      parameters:
+        - $ref: "#/components/parameters/receivedOrderNo"
+      requestBody:
+        description: 受注の変更内容
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/patched"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/single"
+        default:
+          $ref: "#/components/responses/error_response"
+      externalDocs:
+        description: 受注修正
+        url: https://google.com/
+    get:
+      tags:
+        - order
+      operationId: orders.orders.no.get
+      summary: 受注取得
+      description: 受注Noを指定し、受注を1件取得する。受注明細は、出荷数、キャンセル数、受注残、想定利益率等を算出の上取得する。
+      parameters:
+        - $ref: "#/components/parameters/receivedOrderNo"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/single"
+        default:
+          $ref: "#/components/responses/error_response"
+      externalDocs:
+        description: 受注取得
+        url: https://google.com/
+  /orders/{received_order_no}/details:
+    post:
+      tags:
+        - order
+      operationId: orders.orders.no.details.post
+      summary: 受注明細追加登録
+      description: 受注NOを指定し、特定した受注に明細行を追加する。複数明細を同時に登録可能。
+      parameters:
+        - $ref: "#/components/parameters/receivedOrderNo"
+      requestBody:
+        description: 追加する受注明細
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/multiple-detail"
+      responses:
+        "201":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/single"
+        default:
+          $ref: "#/components/responses/error_response"
+      externalDocs:
+        description: 受注明細追加登録
+        url: https://google.com/
+  /orders/{received_order_no}/cancel-instructions:
+    post:
+      tags:
+        - order
+      operationId: orders.orders.no.cancel-instructions.post
+      summary: 受注キャンセル指示
+      description: 受注NOを指定し、特定した受注のキャンセルを指示する。受注残の存在する明細行のみキャンセル可能で、複数のキャンセルを同時に登録可能。
+      parameters:
+        - $ref: "#/components/parameters/receivedOrderNo"
+      requestBody:
+        description: キャンセル指示内容
+        required: true
+        content:
+          application/json:
+            schema:
+              description: 受注キャンセル指示の集合
+              type: array
+              items:
+                $ref: "#/components/schemas/cancel"
+              example:
+                - "no": 238
+                  operationDate: 2023/05/29
+                  operationPic: 1
+                  detailNo: 3467
+                  cancelQuantity: 1
+                  reason: お客様からの要請
+                  excludeReport: false
+                - "no": 239
+                  operationDate: 2023/05/29
+                  operationPic: 1
+                  detailNo: 3470
+                  cancelQuantity: 3
+                  reason: システム誤入力
+                  excludeReport: true
+              # $ref: "#/components/schemas/multiple-cancel"
+      responses:
+        "201":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/single"
+        default:
+          $ref: "#/components/responses/error_response"
+      externalDocs:
+        description: 受注キャンセル指示
+        url: https://google.com/
+  /customers:
+    post:
+      tags:
+        - customer
+      operationId: orders.customers.post
+      summary: 得意先登録
+      description: 得意先を1件登録する。得意先IDは内部で自動採番、登録日は自動で設定する。
+      requestBody:
+        $ref: "#/components/requestBodies/postOrder"
+        description: 登録する得意先情報
+        # required: true
+        # content:
+        #   application/json:
+        #     schema:
+        #       $ref: "#/components/schemas/Customer_single"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Customer_single"
+          headers:
+            location:
+              $ref: "#/components/headers/location_header"
+              example: /v0/customers/A01
+        default:
+          $ref: "#/components/responses/error_response"
+      externalDocs:
+        description: 得意先登録
+        url: https://google.com/
+    get:
+      tags:
+        - customer
+      operationId: orders.customers.get
+      summary: 得意先一覧取得
+      description: 得意先一覧を取得する。ソートは`得意先ID`の昇順
+      parameters:
+        - $ref: "#/components/parameters/limit"
+        - $ref: "#/components/parameters/offset"
+        - $ref: "#/components/parameters/customerName"
+          description: 【検索条件】得意先名（前方一致）
+        - $ref: "#/components/parameters/contactPerson"
+          description: 【検索条件】得意先担当者名（完全一致）
+        - $ref: "#/components/parameters/isActive"
+          description: 【検索条件】取引有無
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Customer_multiple"
+          headers:
+            is_remaining:
+              schema:
+                type: boolean
+              description: limit件数でスライスした際に返却していないデータがある場合にtrue
+              example: true
+        default:
+          $ref: "#/components/responses/error_response"
+      externalDocs:
+        description: 得意先一覧取得
+        url: https://google.com/
+  /customers/{customer_id}:
+    patch:
+      tags:
+        - customer
+      operationId: customers.customers.id.patch
+      summary: 得意先修正
+      description: 得意先IDを指定し、特定した得意先の指定した項目のみ変更する。
+      parameters:
+        - $ref: "#/components/parameters/customerId"
+      requestBody:
+        description: 得意先の変更内容
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/Customer_patched"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Customer_single"
+        default:
+          $ref: "#/components/responses/error_response"
+      externalDocs:
+        description: 得意先修正
+        url: https://google.com/
+    delete:
+      tags:
+        - customer
+      operationId: customers.customers.id.delete
+      summary: 得意先削除
+      description: 得意先IDを指定し、得意先を1件削除する。
+      parameters:
+        - $ref: "#/components/parameters/customerId"
+      responses:
+        "200":
+          description: OK
+        default:
+          $ref: "#/components/responses/error_response"
+      externalDocs:
+        description: 得意先削除
+        url: https://google.com/
+    get:
+      tags:
+        - customer
+      operationId: customers.customers.id.get
+      summary: 得意先取得
+      description: 得意先IDを指定し、得意先を1件取得する。
+      parameters:
+        - $ref: "#/components/parameters/customerId"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Customer_single"
+        default:
+          $ref: "#/components/responses/error_response"
+      externalDocs:
+        description: 得意先取得
+        url: https://google.com/
+components:
+  requestBodies:
+    postOrder:
+      description: 登録する受注情報
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/single"
+
+  parameters:
+    limit:
+      name: limit
+      in: query
+      required: false
+      schema:
+        type: integer
+        minimum: 0
+        maximum: 500
+      description: 検索結果数上限値(デフォルト値は20)
+      example: 100
+    offset:
+      name: offset
+      in: query
+      required: false
+      schema:
+        type: integer
+        minimum: 0
+      description: 検索時offset値(デフォルト値は0)
+      example: 20
+    customerName:
+      name: customer_name
+      in: query
+      required: false
+      schema:
+        $ref: "#/components/schemas/customerName"
+    orderPic:
+      name: order_pic
+      in: query
+      required: false
+      schema:
+        $ref: "#/components/schemas/userId"
+    existRemaining:
+      name: exist_remaining
+      in: query
+      required: false
+      schema:
+        $ref: "#/components/schemas/isWorking"
+    receivedOrderNo:
+      name: received_order_no
+      in: path
+      required: true
+      schema:
+        $ref: "#/components/schemas/receivedOrderNo"
+    contactPerson:
+      name: contact_person
+      in: query
+      required: false
+      schema:
+        $ref: "#/components/schemas/personInCharge"
+    isActive:
+      name: is_active
+      in: query
+      required: false
+      schema:
+        $ref: "#/components/schemas/isWorking"
+    customerId:
+      name: customer_id
+      in: path
+      required: true
+      schema:
+        $ref: "#/components/schemas/customerId"
+  schemas:
+    customerName:
+      type: string
+      maxLength: 100
+      description: 得意先の名称
+      example: 徳川物産
+    userId:
+      type: string
+      minLength: 4
+      maxLength: 4
+      description: システム利用ユーザー
+      example: "0001"
+    isWorking:
+      type: boolean
+      description: 稼働状況
+      example: true
+    comment:
+      type: string
+      minLength: 10
+      description: コメント
+      example: 制御用装置
+    Error:
+      type: object
+      description: エラーレスポンス
+      properties:
+        message:
+          $ref: "#/components/schemas/comment"
+          description: エラーメッセージ
+      example:
+        message: APIを実行する権限を有しないユーザーです
+    receivedOrderNo:
+      type: string
+      minLength: 10
+      maxLength: 10
+      description: 受注番号
+      example: RO-0000001
+    orderDate:
+      type: string
+      format: date
+      description: 受注日
+      example: "2022-12-31"
+    customerId:
+      type: string
+      minLength: 3
+      maxLength: 3
+      description: 得意先のID
+      example: A01
+    price:
+      type: integer
+      minimum: 0
+      maximum: 99999
+      exclusiveMinimum: true
+      exclusiveMaximum: true
+      description: 円、希望小売価格
+      example: 14000
+    orderDetailNo:
+      type: integer
+      description: 受注明細番号
+      example: 1051
+    productNo:
+      type: string
+      minLength: 9
+      maxLength: 10
+      description: 商品特定のユニークキー
+      example: AAA000001
+    quantity:
+      type: integer
+      minimum: 0
+      maximum: 99999
+      exclusiveMinimum: true
+      exclusiveMaximum: true
+      description: 数量
+      example: 30
+    profitRate:
+      type: number
+      minimum: -10
+      maximum: 10
+      exclusiveMinimum: true
+      exclusiveMaximum: true
+      description: 利益率
+      example: 0.324
+    detail:
+      description: 受注明細
+      type: object
+      properties:
+        detailNo:
+          readOnly: true
+          description: 受注明細NO（自動採番）
+          allOf:
+            - $ref: "#/components/schemas/orderDetailNo"
+        productNo:
+          description: 商品NO
+          allOf:
+            - $ref: "#/components/schemas/productNo"
+        quantity:
+          description: 受注数
+          allOf:
+            - $ref: "#/components/schemas/quantity"
+        shippingQuantity:
+          description: 出荷数（※算出項目）  ■:出荷明細リソースから集計
+          readOnly: true
+          allOf:
+            - $ref: "#/components/schemas/quantity"
+        cancelQuantity:
+          description: キャンセル数（※算出項目）  ■:受注キャンセルリソースから集計
+          readOnly: true
+          allOf:
+            - $ref: "#/components/schemas/quantity"
+        remainingQuantity:
+          description: 受注残（※算出項目）  ■:受注数-(出荷数+キャンセル数)
+          readOnly: true
+          allOf:
+            - $ref: "#/components/schemas/quantity"
+        sellingPrice:
+          description: 販売単価
+          allOf:
+            - $ref: "#/components/schemas/price"
+        costPrice:
+          description: 想定原価（※算出項目）  ■:月次原価リソースから算出
+          readOnly: true
+          allOf:
+            - $ref: "#/components/schemas/price"
+        profitRate:
+          description: 想定利益率（※算出項目）  ■:(販売単価-想定原価)/販売単価
+          readOnly: true
+          allOf:
+            - $ref: "#/components/schemas/profitRate"
+      required:
+        - detailNo
+        - productNo
+        - quantity
+        - sellingPrice
+    multiple-detail:
+      description: 受注明細の集合
+      type: array
+      minItems: 1
+      items:
+        $ref: "#/components/schemas/detail"
+      example:
+        - detailNo: 1051
+          productNo: AAA000001
+          quantity: 3
+          shippingQuantity: 0
+          cancelQuantity: 0
+          remainingQuantity: 3
+          sellingPrice: 5000
+          costPrice": 4000
+          profitRate: 0.2
+        - detailNo: 1052
+          productNo: BBB000012
+          quantity: 6
+          shippingQuantity: 4
+          cancelQuantity: 1
+          remainingQuantity: 1
+          sellingPrice: 1000
+          costPrice": 650
+          profitRate: 0.35
+    single:
+      description: 受注
+      type: object
+      properties:
+        orderNo:
+          description: 受注NO（自動採番）
+          readOnly: true
+          allOf:
+            - $ref: "#/components/schemas/receivedOrderNo"
+        orderDate:
+          description: 受注日（自動登録）
+          readOnly: true
+          allOf:
+            - $ref: "#/components/schemas/orderDate"
+        orderPic:
+          description: 受注担当者ID
+          allOf:
+            - $ref: "#/components/schemas/userId"
+        customerId:
+          description: 得意先ID
+          allOf:
+            - $ref: "#/components/schemas/customerId"
+        notes:
+          description: 摘要
+          example: 至急対応が必要。
+          allOf:
+            - $ref: "#/components/schemas/comment"
+        price:
+          description: 受注金額（算出項目）  ■:明細の受注金額合計
+          readOnly: true
+          example: 20000
+          allOf:
+            - $ref: "#/components/schemas/price"
+        details:
+          $ref: "#/components/schemas/multiple-detail"
+      required:
+        - orderNo
+        - orderPic
+        - customerId
+        - details
+    multiple:
+      description: 受注リソースの集合
+      type: array
+      items:
+        $ref: "#/components/schemas/single"
+    orderPic:
+      description: 受注担当者ID
+      allOf:
+        - $ref: "#/components/schemas/userId"
+    patched:
+      description: 受注リソース（変更可のみ）
+      type: object
+      properties:
+        orderPic:
+          $ref: "#/components/schemas/orderPic"
+        notes:
+          description: 摘要
+          example: 至急対応が必要。
+          allOf:
+            - $ref: "#/components/schemas/comment"
+    excludeReport:
+      type: boolean
+      description: 帳票などに出力しない場合にtrue
+      example: true
+    cancel:
+      description: 受注キャンセル指示
+      type: object
+      properties:
+        "no":
+          description: キャンセル連番
+          readOnly: true
+          allOf:
+            - $ref: "#/components/schemas/orderDetailNo"
+        operationDate:
+          description: 指示日（自動登録）
+          readOnly: true
+          allOf:
+            - $ref: "#/components/schemas/orderDate"
+        operationPic:
+          description: 指示者ID
+          allOf:
+            - $ref: "#/components/schemas/userId"
+        detailNo:
+          description: 受注明細NO
+          allOf:
+            - $ref: "#/components/schemas/orderDetailNo"
+        cancelQuantity:
+          description: キャンセル数（※算出項目）  □:受注明細リソースの受注残以下の数値であること
+          allOf:
+            - $ref: "#/components/schemas/quantity"
+        reason:
+          description: キャンセル理由
+          example: お客様からの要請。
+          allOf:
+            - $ref: "#/components/schemas/comment"
+        excludeReport:
+          description: 帳票等非表示（誤入力等の理由で表示させたくない場合にtrue）
+          allOf:
+            - $ref: "#/components/schemas/excludeReport"
+      required:
+        - operationPic
+        - detailNo
+        - cancelQuantity
+        - excludeReport
+    multiple-cancel:
+      description: 受注キャンセル指示の集合
+      type: array
+      items:
+        $ref: "#/components/schemas/cancel"
+      example:
+        - "no": 238
+          operationDate: 2023/05/29
+          operationPic: 1
+          detailNo: 3467
+          cancelQuantity: 1
+          reason: お客様からの要請
+          excludeReport: false
+        - "no": 239
+          operationDate: 2023/05/29
+          operationPic: 1
+          detailNo: 3470
+          cancelQuantity: 3
+          reason: システム誤入力
+          excludeReport: true
+    personInCharge:
+      type: string
+      maxLength: 30
+      description: 業務担当者
+      example: 織田信長
+    restDate:
+      type: string
+      format: date
+      description: 登録日
+      example: "2022-12-31"
+    Customer_single:
+      description: 得意先リソース
+      type: object
+      properties:
+        customerId:
+          readOnly: true
+          description: 得意先Id（自動採番）
+          allOf:
+            - $ref: "#/components/schemas/customerId"
+        customerName:
+          $ref: "#/components/schemas/customerName"
+        contactPerson:
+          description: 得意先担当者名
+          allOf:
+            - $ref: "#/components/schemas/personInCharge"
+        isActive:
+          description: 取引有無
+          allOf:
+            - $ref: "#/components/schemas/isWorking"
+        restDate:
+          readOnly: true
+          description: 登録日（自動登録）
+          allOf:
+            - $ref: "#/components/schemas/restDate"
+        notes:
+          description: 摘要
+          example: 新規得意先のため取引時にはダブルチェックすること。
+          allOf:
+            - $ref: "#/components/schemas/comment"
+      required:
+        - customerId
+        - customerName
+        - isActive
+        - restDate
+    Customer_multiple:
+      description: 得意先リソースの集合
+      type: array
+      items:
+        $ref: "#/components/schemas/Customer_single"
+      example:
+        - customerId: A01
+          customerName: 徳川物産
+          contactPerson: 徳川家光
+          isActive: true
+          restDate: "2023-07-01"
+          notes: null
+        - customerId: A02
+          customerName: 豊臣商事
+          contactPerson: null
+          isActive: false
+          restDate: "2018-10-01"
+          notes: 取引停止中
+    contactPerson:
+      description: 得意先担当者名
+      allOf:
+        - $ref: "#/components/schemas/personInCharge"
+    isActive:
+      description: 取引有無
+      allOf:
+        - $ref: "#/components/schemas/isWorking"
+    notes:
+      description: 摘要
+      example: 新規得意先のため取引時にはダブルチェックすること。
+      allOf:
+        - $ref: "#/components/schemas/comment"
+    Customer_patched:
+      description: 得意先リソース（変更可のみ）
+      type: object
+      properties:
+        customerName:
+          $ref: "#/components/schemas/customerName"
+        contactPerson:
+          $ref: "#/components/schemas/contactPerson"
+        isActive:
+          $ref: "#/components/schemas/isActive"
+        notes:
+          $ref: "#/components/schemas/notes"
+  responses:
+    error_response:
+      description: Error
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+  headers:
+    location_header:
+      schema:
+        type: string
+      description: 新規作成したリソースのパス
