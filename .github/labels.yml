@@ -1,0 +1,9 @@
+- name: C-dependency
+  color: 1abc9c
+  description: "Category: Dependency"
+- name: PR-block
+  color: 3498db
+  description: "Pull Request: Do not merge"
+- name: PR-merge
+  color: 3498db
+  description: "Pull Request: Merge when ready"
