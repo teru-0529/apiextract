@@ -5,6 +5,7 @@ package cmd
 
 import (
 	"fmt"
+	"path/filepath"
 
 	"github.com/spf13/cobra"
 	"github.com/teru-0529/apiextract/model"
@@ -14,11 +15,11 @@ import (
 var inputFile string
 var outputFile string
 
-// listCmd represents output url and httpmethod list
-var listCmd = &cobra.Command{
-	Use:   "list",
-	Short: "Output url and httpmethod list.",
-	Long:  "Output url and httpmethod list.",
+// pathCmd represents output url and httpmethod list
+var pathCmd = &cobra.Command{
+	Use:   "path",
+	Short: "Output url and http-method list.",
+	Long:  "Output url and http-method list.",
 	RunE: func(cmd *cobra.Command, args []string) error {
 
 		_, paths, _, err := model.NewOpenApi(inputFile)
@@ -53,13 +54,15 @@ var listCmd = &cobra.Command{
 			}
 		}
 
-		fmt.Println("write path list")
+		fmt.Printf("input yaml file: [%s]\n", filepath.ToSlash(inputFile))
+		fmt.Printf("output tsv file: [%s]\n", filepath.ToSlash(outputFile))
+		fmt.Println("path command completed.")
 		return nil
 	},
 }
 
 func init() {
 	// INFO:フラグ値を変数にBind
-	listCmd.Flags().StringVarP(&inputFile, "in", "I", "./openapi.yaml", "input file path")
-	listCmd.Flags().StringVarP(&outputFile, "out", "O", "./pathlist.tsv", "output file path")
+	pathCmd.Flags().StringVarP(&inputFile, "in", "I", "./openapi.yaml", "input file path")
+	pathCmd.Flags().StringVarP(&outputFile, "out", "O", "./pathlist.tsv", "output file path")
 }
