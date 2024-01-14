@@ -13,7 +13,7 @@ changelog:
     - title: Refactor code. ♻️
       labels:
         - Refactoring
-    - title: Simple fix for a non-critical issue. 🩹
+    - title: Bugfix for a non-critical issue. 🩹
       labels:
         - Bug
     - title: Add or update documentation. 📑
