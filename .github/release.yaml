@@ -1,0 +1,27 @@
+changelog:
+  exclude:
+    labels:
+      - ignore-for-release
+
+  categories:
+    - title: Exciting new Features. 🎉
+      labels:
+        - Feature
+    - title: Emergency hotfix. 🚑
+      labels:
+        - Hotfix
+    - title: Refactor code. ♻️
+      labels:
+        - Refactoring
+    - title: Simple fix for a non-critical issue. 🩹
+      labels:
+        - Bug
+    - title: Add or update documentation. 📑
+      labels:
+        - Documentation
+    - title: Setting and Maintenance. 🔧
+      labels:
+        - Maintenance
+    - title: Other Changes
+      labels:
+        - "*"
