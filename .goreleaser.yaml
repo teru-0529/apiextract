@@ -43,6 +43,8 @@ archives:
     files:
       - LICENSE*
       - README*
+      - CHANGELOG
+      - changelog
       - dummy.xlsx
 
 changelog:
