@@ -12,8 +12,8 @@ import (
 // versionCmd represents the version command
 var versionCmd = &cobra.Command{
 	Use:   "version",
-	Short: "Show semantic version adn release date.",
-	Long:  "Show semantic version adn release date.",
+	Short: "Show semantic version and release date.",
+	Long:  "Show semantic version and release date.",
 	Run: func(cmd *cobra.Command, args []string) {
 		fmt.Printf("version: %s (releasedAt: %s)\n", version, releaseDate)
 	},
