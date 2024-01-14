@@ -1,18 +1,18 @@
-- color: 0E8A16
+- name: Feature
   description: Exciting new Features.
-  name: Feature
-- color: b60205
+  color: 0E8A16
+- name: emergency
   description: Emergency hotfix.
-  name: emergency
-- color: f9d0c4
+  color: b60205
+- name: Refactoring
   description: Refactor code.
-  name: Refactoring
-- color: d73a4a
+  color: f9d0c4
+- name: Bug
   description: Simple fix for a non-critical issue.
-  name: Bug
-- color: 0075ca
+  color: d73a4a
+- name: Documentation
   description: Add or update documentation.
-  name: Documentation
-- color: cfd3d7
+  color: 0075ca
+- name: Maintenance
   description: Setting and Maintenance.
-  name: Maintenance
+  color: cfd3d7
