@@ -11,6 +11,11 @@ import (
 	"github.com/spf13/viper"
 )
 
+var (
+	version     string
+	releaseDate string
+)
+
 var cfgFile string
 
 // rootCmd represents the base command when called without any subcommands
@@ -21,7 +26,10 @@ var rootCmd = &cobra.Command{
 }
 
 // This is called by main.main(). It only needs to happen once to the rootCmd.
-func Execute() {
+func Execute(ver string, date string) {
+	version = ver
+	releaseDate = date
+
 	err := rootCmd.Execute()
 	if err != nil {
 		os.Exit(1)
@@ -31,8 +39,9 @@ func Execute() {
 func init() {
 	cobra.OnInitialize(initConfig)
 
-	// サブコマンド(list)の追加
+	// サブコマンドの追加
 	rootCmd.AddCommand(listCmd)
+	rootCmd.AddCommand(versionCmd)
 
 	// TODO:cofigファイルの定義(viper)は未整備
 	rootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "config file (default is $HOME/.apiextract.yaml)")
