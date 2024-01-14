@@ -8,7 +8,7 @@
   description: Refactor code.
   color: f9d0c4
 - name: Bug
-  description: Simple fix for a non-critical issue.
+  description: Bugfix for a non-critical issue.
   color: d73a4a
 - name: Documentation
   description: Add or update documentation.
