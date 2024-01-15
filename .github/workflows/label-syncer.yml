@@ -23,7 +23,7 @@ jobs:
         run: yarn add -D @azu/github-label-setup
 
       - name: Run label-setup
-        run: yarn github-label-setup --token ${{ secrets.GITHUB_TOKEN }} --labels .github/labels.labels
+        run: yarn github-label-setup --token ${{ secrets.GITHUB_TOKEN }} --labels .github/labels.yml
 
     # steps:
     #   - name: Checkout Source
