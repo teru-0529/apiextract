@@ -1,0 +1,32 @@
+[
+  {
+    "name": "Feature",
+    "description": "Exciting new Features.",
+    "color": "0E8A16"
+  },
+  {
+    "name": "Emergency",
+    "description": "Emergency hotfix.",
+    "color": "b60205"
+  },
+  {
+    "name": "Refactoring",
+    "description": "Refactor code.",
+    "color": "f9d0c4"
+  },
+  {
+    "name": "Bug",
+    "description": "Bugfix for a non-critical issue.",
+    "color": "d73a4a"
+  },
+  {
+    "name": "Documentation",
+    "description": "Add or update documentation.",
+    "color": "0075ca"
+  },
+  {
+    "name": "Maintenance",
+    "description": "Setting and Maintenance.",
+    "color": "cfd3d7"
+  }
+]
