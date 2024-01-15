@@ -6,18 +6,32 @@ on:
       - main
     paths:
       - .github/labels.yml
+      - .github/workflows/label-syncer.yml
 
 jobs:
   build:
-    name: Sync labels
+    name: labels setup
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Source
         uses: actions/checkout@v4
 
-      - name: Run label-syncer
-        uses: micnncim/action-label-syncer@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          manifest: .github/labels.yml
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+
+      - name: Install dependencies
+        run: yarn add -D @azu/github-label-setup
+
+      - name: Run label-setup
+        run: yarn github-label-setup --token ${{ secrets.GITHUB_TOKEN }} --labels .github/labels.labels
+
+    # steps:
+    #   - name: Checkout Source
+    #     uses: actions/checkout@v4
+
+    #   - name: Run label-syncer
+    #     uses: micnncim/action-label-syncer@v1
+    #     env:
+    #       GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    #     with:
+    #       manifest: .github/labels.yml
